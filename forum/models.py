@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models import Count
 from django.contrib.auth.models import User
 
 
@@ -21,7 +22,6 @@ class Author(models.Model):
 
     def __str__(self):
         return f'{self.pk}: {self.full_name}'
-
 
 class Tag(models.Model):
     text = models.CharField(max_length=20)
@@ -46,10 +46,28 @@ class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.ManyToManyField(Book, through='OrderLine')
 
+    def __str__(self):
+        return f'{self.user.username}\'s Basket #{self.pk}'
+
+    @property
+    def total(self):
+        lines = self.Orderlines.select_related('book').all()
+        total = 0
+        for line in lines:
+            total += line.total
+        return total
+
 class OrderLine(models.Model):
-    book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    basket = models.ForeignKey(Basket, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='orderlines')
+    basket = models.ForeignKey(Basket, on_delete=models.CASCADE, related_name='orderlines')
     quantity = models.IntegerField()
+
+    def __ste__(self):
+        return f'{self.pk}({self.book.title}): Basket: {self.basket.pk}'
+
+    @property
+    def total(self):
+        return self.book.price * self.quantity
 
 # class UselessModel(models.Model):
 #     LANGUAGE_CHOICES = [
